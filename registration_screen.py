@@ -70,12 +70,28 @@ class FaceRegistrationScreen(Screen):
         self.name_input = TextInput(hint_text="e.g., John_Doe", multiline=False, size_hint_y=None, height=50)
         content.add_widget(self.name_input)
         
-        start_btn = Button(text="Start Registration", size_hint_y=None, height=50)
-        content.add_widget(start_btn)
+        # --- NEW: Create a horizontal layout for side-by-side buttons ---
+        btn_layout = BoxLayout(orientation='horizontal', spacing=10, size_hint_y=None, height=50)
+        
+        cancel_btn = Button(text="Cancel", background_color=(0.8, 0.2, 0.2, 1)) # Red color
+        cancel_btn.bind(on_release=self.cancel_registration)
+        btn_layout.add_widget(cancel_btn)
+        
+        start_btn = Button(text="Start Registration", background_color=(0.2, 0.6, 0.2, 1)) # Green color
+        start_btn.bind(on_release=self.start_after_popup)
+        btn_layout.add_widget(start_btn)
+        
+        content.add_widget(btn_layout)
+        # ----------------------------------------------------------------
         
         self.popup = Popup(title="User Information", content=content, size_hint=(0.8, 0.4), auto_dismiss=False)
-        start_btn.bind(on_release=self.start_after_popup)
         self.popup.open()
+
+    def cancel_registration(self, instance):
+        """Closes the popup and returns to the Main Menu."""
+        self.popup.dismiss()
+        # Ensure 'main_menu' matches the exact name you used in your ScreenManager!
+        self.manager.current = 'main_menu'
 
     def start_after_popup(self, instance):
         user_text = self.name_input.text.strip()

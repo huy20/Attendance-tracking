@@ -48,7 +48,7 @@ class FaceRecognitionScreen(Screen):
         # --- Tracker Variables ---
         self.tracking_name = None
         self.consecutive_matches = 0
-        self.REQUIRED_MATCHES = 2  # The AI must guess the SAME name 3 times in a row
+        self.REQUIRED_MATCHES = 3  # The AI must guess the SAME name 3 times in a row
 
     def on_enter(self, *args):
         app = App.get_running_app()
