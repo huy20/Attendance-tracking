@@ -6,7 +6,7 @@ from kivy.network.urlrequest import UrlRequest
 from kivy.clock import Clock
 
 class AttendanceSyncer:
-    def __init__(self, base_dir, host_url, sync_interval=60.0):
+    def __init__(self, base_dir, host_url, sync_interval=3600.0):
         self.base_dir = base_dir
         self.host_url = host_url
         self.sync_interval = sync_interval

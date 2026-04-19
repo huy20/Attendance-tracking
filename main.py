@@ -8,14 +8,13 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.gridlayout import GridLayout
 from kivy.core.window import Window
 
-# Import your registration module
+# Import your screens
 from registration_screen import FaceRegistrationScreen
 from RegisteredID import ViewFacesScreen
 from recognition_screen import FaceRecognitionScreen
-from gallery import UserGalleryScreen
 from log_history_screen import LogHistoryScreen
-from network_sync import AttendanceSyncer
 
+# Fixes the Android floating keyboard overlap issue globally
 Window.softinput_mode = 'below_target'
 
 class MainMenuScreen(Screen):
@@ -32,9 +31,11 @@ class MainMenuScreen(Screen):
         btn_view = Button(text="View Registered Faces", size_hint_y=None, height=100)
         btn_view.bind(on_press=self.go_to_view_faces)
         
+        # 3. Recognition Button
         btn_recognize = Button(text="Start Live Recognition", size_hint_y=None, height=100)
         btn_recognize.bind(on_press=self.go_to_recognition)
         
+        # 4. Log History Button
         btn_log = Button(text="Attendance List", size_hint_y=None, height=100)
         btn_log.bind(on_press=self.go_to_log_history)
         
@@ -61,27 +62,15 @@ class MyMainApp(App):
     def build(self):
         sm = ScreenManager()
         
-        # Add all three stages to the ScreenManager
+        # Add all stages to the ScreenManager
         sm.add_widget(MainMenuScreen(name='main_menu'))
         sm.add_widget(FaceRegistrationScreen(name='register_stage'))
         sm.add_widget(ViewFacesScreen(name='view_faces_stage'))
         sm.add_widget(FaceRecognitionScreen(name='recognition_stage'))
-        sm.add_widget(UserGalleryScreen(name='gallery_stage'))
         sm.add_widget(LogHistoryScreen(name='log_screen'))
+        
         return sm
-    def on_start(self):
-        """This runs automatically right after build() finishes."""
-        # 1. Define the exact path to your database folder
-        base_dir = os.path.join(self.user_data_dir, "registered_faces")
-        
-        # 2. Put your Desktop's IP address here
-        HOST_URL = "http://192.168.1.33:5000/sync" 
-        
-        # 3. Create the syncer and attach it to the app so it stays alive
-        self.syncer = AttendanceSyncer(base_dir=base_dir, host_url=HOST_URL, sync_interval=60.0)
-        
-        # 4. Start the background loop!
-        self.syncer.start_syncing()
+
 
 if __name__ == '__main__':
     MyMainApp().run()
