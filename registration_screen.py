@@ -148,8 +148,8 @@ class FaceRegistrationScreen(Screen):
 
             # 2. Attach the strict parameters directly to the BOOTH, not the screen
             self.booth.COOLDOWN = 0.2
-            self.booth.MAX_SHOTS = 10
-            self.booth.STABILITY_THRESHOLD = 20
+            self.booth.MAX_SHOTS = 5
+            self.booth.STABILITY_THRESHOLD = 17
             
             # 3. Now that the booth exists and is configured, it is safe to reset
             self.booth.reset_session()
