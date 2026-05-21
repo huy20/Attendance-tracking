@@ -15,13 +15,13 @@ class FaceRegister:
         # --- Config & Thresholds ---
         self.COOLDOWN = 0.2
         self.RESET_DELAY = 2.0
-        self.MAX_SHOTS = 10
-        self.STABILITY_THRESHOLD = 20
+        self.MAX_SHOTS = 5
+        self.STABILITY_THRESHOLD = 18
         
-        self.MAX_YAW = 18.0    
-        self.MAX_PITCH = 15.0  
-        self.MAX_TILT = 5.0   
-        self.MIN_FACE_H, self.MAX_FACE_H = 0.35, 0.8
+        self.MAX_YAW = 18.0
+        self.MAX_PITCH = 15.0
+        self.MAX_TILT = 3.0
+        self.MIN_FACE_H, self.MAX_FACE_H = 0.2, 0.8
 
         # --- State Variables ---
         self.last_capture_time = 0
@@ -92,7 +92,6 @@ class FaceRegister:
 
     def crop_face_native(self, frame, face_box):
         h, w, _ = frame.shape
-        # FIX: Changed to use dictionary brackets
         left, top, right, bottom = face_box["left"], face_box["top"], face_box["right"], face_box["bottom"]
         
         padding = int((right - left) * 0.2)
@@ -101,7 +100,6 @@ class FaceRegister:
         return frame[y1:y2, x1:x2]
     
     def is_centered(self, face_box, frame_w, frame_h, threshold=0.15):
-        # FIX: Changed to use dictionary brackets
         left, top = face_box["left"], face_box["top"]
         right, bottom = face_box["right"], face_box["bottom"]
         

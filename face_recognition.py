@@ -16,7 +16,7 @@ class FaceEmbedder:
         # Recognition variables
         self.known_names = []
         self.known_embeddings = []
-        self.threshold = 0.75
+        self.threshold = 0.55
         
         # Will be set when loading
         self.log_db_path = None 
@@ -50,19 +50,21 @@ class FaceEmbedder:
                 self.known_embeddings.append(embedding)
                 
             print(f"Loaded {len(self.known_names)} embeddings into memory.")
-        except sqlite3.OperationalError:
-            print("Database exists, but no user table found.")
+        except Exception as e:
+            print(f"Error loading database: {e}")
         finally:
             conn.close()
 
     def get_embedding(self, cropped_face_bgr):
         resized = cv2.resize(cropped_face_bgr, (112, 112))
         blob = cv2.dnn.blobFromImage(
-            resized, scalefactor=1.0, size=(112, 112), 
-            mean=(0, 0, 0), swapRB=True
+            resized, scalefactor=1.0/127.5, size=(112, 112), 
+            mean=(127.5, 127.5, 127.5), swapRB=True
         )
         self.net.setInput(blob)
-        return self.net.forward()[0]
+        emb = self.net.forward()[0]
+        # L2 Normalize the embedding for cosine similarity accuracy
+        return emb / np.linalg.norm(emb)
 
     def cosine_similarity(self, a, b):
         """Calculates how closely two vectors match (1.0 is perfect match, -1.0 is opposite)"""

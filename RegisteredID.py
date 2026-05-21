@@ -3,141 +3,213 @@ import shutil
 import sqlite3
 from kivy.app import App
 from kivy.uix.screenmanager import Screen
-from kivy.uix.button import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.popup import Popup
+from kivy.utils import get_color_from_hex
+from kivy.graphics import Color, Rectangle, RoundedRectangle
+
+from ui_components import RoundedButton, Card, make_screen_bg
+
+
+class UserRow(BoxLayout):
+    """A styled row card for each registered user."""
+    def __init__(self, name, on_delete, **kwargs):
+        super().__init__(orientation='horizontal', size_hint_y=None,
+                         height=64, spacing=12, padding=[16, 8], **kwargs)
+        with self.canvas.before:
+            Color(*get_color_from_hex("#161B22"))
+            self.bg = RoundedRectangle(pos=self.pos, size=self.size, radius=[12,])
+        self.bind(pos=self._upd, size=self._upd)
+
+        # Avatar circle label
+        avatar = Label(
+            text=name[0].upper(),
+            font_size='20sp', bold=True,
+            color=get_color_from_hex("#58A6FF"),
+            size_hint_x=None, width=44,
+        )
+        with avatar.canvas.before:
+            Color(*get_color_from_hex("#1C2A3A"))
+            RoundedRectangle(pos=avatar.pos, size=avatar.size, radius=[22,])
+        avatar.bind(pos=lambda w, v: None, size=lambda w, v: None)
+
+        name_lbl = Label(
+            text=name.replace("_", " "),
+            font_size='17sp', bold=True,
+            color=get_color_from_hex("#E6EDF3"),
+            halign='left', valign='middle',
+        )
+        name_lbl.bind(size=name_lbl.setter('text_size'))
+
+        btn_del = RoundedButton(
+            text='Delete',
+            bg_color=get_color_from_hex("#6E1C1C"),
+            size_hint_x=None, width=90, radius=[10,], font_size='14sp',
+        )
+        btn_del.bind(on_press=lambda x: on_delete(name))
+
+        self.add_widget(avatar)
+        self.add_widget(name_lbl)
+        self.add_widget(btn_del)
+
+    def _upd(self, *args):
+        self.bg.pos = self.pos
+        self.bg.size = self.size
+
 
 class ViewFacesScreen(Screen):
     def __init__(self, **kwargs):
-        super(ViewFacesScreen, self).__init__(**kwargs)
-        self.layout = BoxLayout(orientation='vertical', padding=20, spacing=10)
+        super().__init__(**kwargs)
+        make_screen_bg(self)
 
-        # Title
-        self.title_label = Label(text="Registered Users", size_hint_y=None, height=50, font_size=24)
-        self.layout.add_widget(self.title_label)
+        root = BoxLayout(orientation='vertical', padding=[24, 30, 24, 20], spacing=16)
 
-        # Scrollable area setup
-        self.scroll = ScrollView(size_hint=(1, 1))
+        # ── Header ───────────────────────────────────────────────────────────
+        header_row = BoxLayout(orientation='horizontal', size_hint_y=None, height=48)
+        self.title_label = Label(
+            text='Registered Users',
+            font_size='26sp', bold=True,
+            color=get_color_from_hex("#E6EDF3"),
+            halign='left', valign='middle',
+        )
+        self.title_label.bind(size=self.title_label.setter('text_size'))
+        btn_back = RoundedButton(
+            text='Back', size_hint_x=None, width=110,
+            bg_color=get_color_from_hex("#21262D"), radius=[12,], font_size='15sp',
+        )
+        btn_back.size_hint_y = None
+        btn_back.height = 44
+        btn_back.bind(on_press=self.go_back)
+        header_row.add_widget(self.title_label)
+        header_row.add_widget(btn_back)
+        root.add_widget(header_row)
+
+        # ── Count badge ──────────────────────────────────────────────────────
+        self.count_label = Label(
+            text='',
+            font_size='13sp',
+            color=get_color_from_hex("#8B949E"),
+            size_hint_y=None, height=22,
+            halign='left', valign='middle',
+        )
+        self.count_label.bind(size=self.count_label.setter('text_size'))
+        root.add_widget(self.count_label)
+
+        # ── Scrollable user list ──────────────────────────────────────────────
+        self.scroll = ScrollView()
         self.list_layout = GridLayout(cols=1, spacing=10, size_hint_y=None)
         self.list_layout.bind(minimum_height=self.list_layout.setter('height'))
         self.scroll.add_widget(self.list_layout)
+        root.add_widget(self.scroll)
 
-        self.layout.add_widget(self.scroll)
-
-        # Back button to return to main menu
-        btn_back = Button(text="Back to Menu", size_hint_y=None, height=60, background_color=(0.5, 0.5, 0.5, 1))
-        btn_back.bind(on_release=self.go_back)
-        self.layout.add_widget(btn_back)
-
-        self.add_widget(self.layout)
+        self.add_widget(root)
 
     def on_enter(self, *args):
-        # Refresh the list every time we open the screen
         self.load_users()
 
     def load_users(self):
-        # Clear the old list
         self.list_layout.clear_widgets()
-
         app = App.get_running_app()
         base_dir = os.path.join(app.user_data_dir, "registered_faces")
-
-        # Check if the folder exists and populate the list
-        if os.path.exists(base_dir):
-            users = [d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))]
-            
-            if users:
-                for user in users:
-                    display_name = user.replace("_", " ")
-                    
-                    # Create a horizontal row for each user
-                    row = BoxLayout(orientation='horizontal', size_hint_y=None, height=50, spacing=10)
-                    
-                    # The user's name
-                    lbl = Label(text=display_name, size_hint_x=0.7, font_size='18sp')
-                    
-                    # The delete button - now triggers the confirmation popup!
-                    btn_del = Button(text="Delete", background_color=(0.8, 0.2, 0.2, 1), size_hint_x=0.3)
-                    btn_del.bind(on_release=lambda instance, u=user: self.confirm_delete_popup(u))
-                    
-                    row.add_widget(lbl)
-                    row.add_widget(btn_del)
-                    
-                    self.list_layout.add_widget(row)
-            else:
-                self.list_layout.add_widget(Label(text="No users registered yet.", size_hint_y=None, height=50))
-        else:
-            self.list_layout.add_widget(Label(text="No users registered yet.", size_hint_y=None, height=50))
-
-    def confirm_delete_popup(self, user_folder):
-        """Displays a confirmation popup before deleting a user."""
-        display_name = user_folder.replace("_", " ")
-        
-        # Create the content layout for the popup
-        content = BoxLayout(orientation='vertical', padding=10, spacing=10)
-        
-        message = Label(text=f"Are you sure you want to delete\n{display_name}?\nThis cannot be undone.", 
-                        halign="center", font_size='16sp')
-        content.add_widget(message)
-        
-        # Horizontal layout for the Yes/No buttons
-        btn_layout = BoxLayout(orientation='horizontal', spacing=10, size_hint_y=None, height=50)
-        
-        btn_yes = Button(text="Yes, Delete", background_color=(0.8, 0.2, 0.2, 1))
-        btn_no = Button(text="Cancel", background_color=(0.5, 0.5, 0.5, 1))
-        
-        btn_layout.add_widget(btn_yes)
-        btn_layout.add_widget(btn_no)
-        content.add_widget(btn_layout)
-        
-        # Create the popup
-        popup = Popup(title="Confirm Deletion", content=content, size_hint=(0.8, 0.4), auto_dismiss=False)
-        
-        # Bind the buttons
-        btn_no.bind(on_release=popup.dismiss)
-        
-        # When "Yes" is clicked, call the actual delete function and dismiss the popup
-        def on_confirm_delete(instance):
-            self.execute_delete_user(user_folder)
-            popup.dismiss()
-            
-        btn_yes.bind(on_release=on_confirm_delete)
-        
-        popup.open()
-
-    def execute_delete_user(self, user_folder):
-        """Actually handles the physical deletion of data."""
-        app = App.get_running_app()
-        base_dir = os.path.join(app.user_data_dir, "registered_faces")
-        user_dir = os.path.join(base_dir, user_folder)
         db_path = os.path.join(base_dir, "faces.db")
 
-        # 1. Delete the Embeddings from the Database
+        users = []
         if os.path.exists(db_path):
             try:
-                conn = sqlite3.connect(db_path)
-                cursor = conn.cursor()
-                cursor.execute("DELETE FROM user_embeddings WHERE person_name = ?", (user_folder,))
-                rows_deleted = cursor.rowcount
-                conn.commit()
-                conn.close()
-                print(f"Deleted {rows_deleted} face embedding(s) for {user_folder}.")
+                with sqlite3.connect(db_path) as conn:
+                    rows = conn.execute("SELECT DISTINCT person_name FROM user_embeddings ORDER BY person_name ASC").fetchall()
+                    users = [row[0] for row in rows if row[0] != "keys"]
             except Exception as e:
-                print(f"Database Deletion Error for {user_folder}: {e}")
+                print(f"Error reading faces.db: {e}")
 
-        # 2. Delete the Physical Image Folder
+        self.title_label.text = 'Registered Users'
+        self.count_label.text = f"{len(users)} user{'s' if len(users) != 1 else ''} registered"
+
+        if users:
+            for user in users:
+                row = UserRow(name=user, on_delete=self.confirm_delete)
+                self.list_layout.add_widget(row)
+        else:
+            empty = Label(
+                text="No users registered yet.\nRegister a face to get started.",
+                font_size='16sp',
+                color=get_color_from_hex("#484F58"),
+                halign='center', valign='middle',
+                size_hint_y=None, height=100,
+            )
+            empty.bind(size=empty.setter('text_size'))
+            self.list_layout.add_widget(empty)
+
+    def confirm_delete(self, user_folder):
+        display = user_folder.replace("_", " ")
+
+        content = BoxLayout(orientation='vertical', padding=20, spacing=14)
+        with content.canvas.before:
+            Color(*get_color_from_hex("#161B22"))
+            Rectangle(pos=content.pos, size=content.size)
+
+        msg = Label(
+            text=f"Delete [b]{display}[/b]?\n\nThis cannot be undone.",
+            markup=True,
+            font_size='16sp',
+            color=get_color_from_hex("#E6EDF3"),
+            halign='center', valign='middle',
+        )
+        msg.bind(size=msg.setter('text_size'))
+        content.add_widget(msg)
+
+        btns = BoxLayout(orientation='horizontal', spacing=12, size_hint_y=None, height=50)
+        btn_yes = RoundedButton(
+            text='Yes, Delete',
+            bg_color=get_color_from_hex("#6E1C1C"), radius=[12,],
+        )
+        btn_no = RoundedButton(
+            text='Cancel',
+            bg_color=get_color_from_hex("#21262D"), radius=[12,],
+        )
+        btns.add_widget(btn_yes)
+        btns.add_widget(btn_no)
+        content.add_widget(btns)
+
+        popup = Popup(
+            title='Confirm Deletion',
+            title_color=get_color_from_hex("#F85149"),
+            content=content,
+            size_hint=(0.85, 0.42),
+            auto_dismiss=False,
+            background_color=get_color_from_hex("#0D1117"),
+        )
+        btn_no.bind(on_press=popup.dismiss)
+        btn_yes.bind(on_press=lambda x: [self.execute_delete(user_folder), popup.dismiss()])
+        popup.open()
+
+    def execute_delete(self, user_folder):
+        app = App.get_running_app()
+        base_dir = os.path.join(app.user_data_dir, "registered_faces")
+        db_path = os.path.join(base_dir, "faces.db")
+        user_dir = os.path.join(base_dir, user_folder)
+
+        if os.path.exists(db_path):
+            try:
+                with sqlite3.connect(db_path) as conn:
+                    conn.execute("DELETE FROM user_embeddings WHERE person_name = ?", (user_folder,))
+                    conn.commit()
+            except Exception as e:
+                print(f"DB delete error: {e}")
+
         if os.path.exists(user_dir):
             try:
                 shutil.rmtree(user_dir)
-                print(f"Deleted physical image folder: {user_folder}")
             except Exception as e:
-                print(f"Error deleting folder {user_folder}: {e}")
+                print(f"Folder delete error: {e}")
 
-        # 3. Immediately refresh the UI so the user disappears from the screen
+        if hasattr(app, 'syncer') and app.syncer:
+            app.syncer.push_delete(user_folder)
+
         self.load_users()
 
-    def go_back(self, instance):
+    def go_back(self, *args):
         self.manager.current = 'main_menu'
