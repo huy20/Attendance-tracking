@@ -16,7 +16,7 @@ from ui_components import RoundedButton, Card, make_screen_bg
 
 class UserRow(BoxLayout):
     """A styled row card for each registered user."""
-    def __init__(self, name, on_delete, **kwargs):
+    def __init__(self, name, on_delete, on_gallery, **kwargs):
         super().__init__(orientation='horizontal', size_hint_y=None,
                          height=64, spacing=12, padding=[16, 8], **kwargs)
         with self.canvas.before:
@@ -44,6 +44,13 @@ class UserRow(BoxLayout):
         )
         name_lbl.bind(size=name_lbl.setter('text_size'))
 
+        btn_gallery = RoundedButton(
+            text='Gallery',
+            bg_color=get_color_from_hex("#1F6FEB"),
+            size_hint_x=None, width=90, radius=[10,], font_size='14sp',
+        )
+        btn_gallery.bind(on_press=lambda x: on_gallery(name))
+
         btn_del = RoundedButton(
             text='Delete',
             bg_color=get_color_from_hex("#6E1C1C"),
@@ -53,6 +60,7 @@ class UserRow(BoxLayout):
 
         self.add_widget(avatar)
         self.add_widget(name_lbl)
+        self.add_widget(btn_gallery)
         self.add_widget(btn_del)
 
     def _upd(self, *args):
@@ -130,7 +138,7 @@ class ViewFacesScreen(Screen):
 
         if users:
             for user in users:
-                row = UserRow(name=user, on_delete=self.confirm_delete)
+                row = UserRow(name=user, on_delete=self.confirm_delete, on_gallery=self.open_gallery)
                 self.list_layout.add_widget(row)
         else:
             empty = Label(
@@ -142,6 +150,11 @@ class ViewFacesScreen(Screen):
             )
             empty.bind(size=empty.setter('text_size'))
             self.list_layout.add_widget(empty)
+
+    def open_gallery(self, user_name):
+        gallery = self.manager.get_screen('user_gallery')
+        gallery.target_user = user_name
+        self.manager.current = 'user_gallery'
 
     def confirm_delete(self, user_folder):
         display = user_folder.replace("_", " ")

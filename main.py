@@ -14,6 +14,7 @@ from registration_screen import FaceRegistrationScreen
 from RegisteredID import ViewFacesScreen
 from recognition_screen import FaceRecognitionScreen
 from log_history_screen import LogHistoryScreen
+from gallery import UserGalleryScreen
 
 Window.softinput_mode = 'below_target'
 
@@ -130,6 +131,7 @@ class MyMainApp(App):
         sm.add_widget(MainMenuScreen(name='main_menu'))
         sm.add_widget(FaceRegistrationScreen(name='register_stage'))
         sm.add_widget(ViewFacesScreen(name='view_faces_stage'))
+        sm.add_widget(UserGalleryScreen(name='user_gallery'))
         sm.add_widget(FaceRecognitionScreen(name='recognition_stage'))
         sm.add_widget(LogHistoryScreen(name='log_screen'))
         self.syncer = None

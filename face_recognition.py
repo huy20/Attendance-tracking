@@ -16,7 +16,7 @@ class FaceEmbedder:
         # Recognition variables
         self.known_names = []
         self.known_embeddings = []
-        self.threshold = 0.55
+        self.threshold = 0.40
         
         # Will be set when loading
         self.log_db_path = None 

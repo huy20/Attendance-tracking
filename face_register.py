@@ -20,7 +20,7 @@ class FaceRegister:
         
         self.MAX_YAW = 18.0
         self.MAX_PITCH = 15.0
-        self.MAX_TILT = 3.0
+        self.MAX_TILT = 10.0
         self.MIN_FACE_H, self.MAX_FACE_H = 0.2, 0.8
 
         # --- State Variables ---
