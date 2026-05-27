@@ -1,4 +1,5 @@
 import os
+import threading
 import cv2
 import numpy as np
 import time
@@ -91,6 +92,14 @@ class StatusBar(BoxLayout):
         self.name_label.color = get_color_from_hex("#3FB950")
         self.conf_label.text = f"{conf*100:.1f}%"
         self.conf_label.color = get_color_from_hex("#3FB950")
+
+    def show_verifying(self, progress, required):
+        filled = 'o' * progress
+        empty = '.' * (required - progress)
+        self.dot.color = get_color_from_hex("#D29922")
+        self.name_label.text = f"Verifying  {filled}{empty}"
+        self.name_label.color = get_color_from_hex("#D29922")
+        self.conf_label.text = ""
 
     def show_searching(self):
         self.dot.color = get_color_from_hex("#484F58")
@@ -286,15 +295,23 @@ class FaceRecognitionScreen(Screen):
                     else:
                         self.tracking_name = name
                         self.consecutive = 1
-                    self.active_user = name
-                    self.user_conf = conf
-                    self.persistence = 12
 
                     if self.consecutive >= self.REQUIRED:
                         last = self.recently_logged.get(name, 0)
                         if now - last > self.log_cooldown:
                             self.embedder.log_recognition(name)
                             self.recently_logged[name] = now
+                            app = App.get_running_app()
+                            if hasattr(app, 'syncer') and app.syncer is not None:
+                                threading.Thread(
+                                    target=app.syncer.signal_track,
+                                    args=(name,),
+                                    daemon=True,
+                                ).start()
+                        # Show name + confidence only after logging threshold
+                        self.active_user = name
+                        self.user_conf = conf
+                        self.persistence = 12
                 else:
                     self.tracking_name = None
                     self.consecutive = 0
@@ -315,6 +332,8 @@ class FaceRecognitionScreen(Screen):
     def _update_hud(self):
         if self.active_user:
             self.status_bar.show_recognized(self.active_user, self.user_conf)
+        elif self.tracking_name and 0 < self.consecutive < self.REQUIRED:
+            self.status_bar.show_verifying(self.consecutive, self.REQUIRED)
         elif getattr(self, 'latest_status', '') == 'INVALID' and getattr(self, 'latest_reasons', []):
             self.status_bar.show_warning(self.latest_reasons[0])
         else:
